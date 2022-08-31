@@ -1,0 +1,5 @@
+horizontal_flip: True
+
+ls: True
+sd: 0.1
+re: 0.3

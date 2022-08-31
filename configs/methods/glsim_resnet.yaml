@@ -1,0 +1,4 @@
+defaults:
+  method: 'glsim.yaml'
+
+condenser_pos_embedding: True

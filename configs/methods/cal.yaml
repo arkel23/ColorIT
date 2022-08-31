@@ -1,0 +1,5 @@
+model_name: 'cal'
+
+epochs: 160
+
+save_images: 5000

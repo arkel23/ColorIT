@@ -1,0 +1,14 @@
+save_images: 5000
+
+# glsim based selection related
+global_rep_pool_max: True
+#sim_metric: kld_logo_a
+cat_after_encoder: True
+encoder_batch_cat: True
+
+# condenser related
+condenser: True
+
+# aggregator related
+aggregator: True
+aggregator_norm: True

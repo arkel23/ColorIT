@@ -1,0 +1,9 @@
+dataset_name: 'cifar100'
+dataset_root_path: '../../data/cifar100'
+df_train: 'train.csv'
+df_trainval: train.csv
+df_val: 'test.csv'
+df_test: 'test.csv'
+folder_train: 'train'
+folder_val: 'test'
+folder_test: 'test'
