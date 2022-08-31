@@ -1,4 +1,0 @@
-model_name: 'transfg'
-
-classifier_aux: 'cont'
-loss_aux_weight: 1.0

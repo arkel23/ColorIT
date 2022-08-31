@@ -1,4 +1,17 @@
 ATTENTIONS = ('vanilla', 'mixer', 'conv')
+DEPATCHIFIERS = (
+    'inter_upsample_conv', 'inter_upsample_csse_conv', 'inter_upsample_csse_conv_conv',
+    'transconv_single', 'transconv_mult',
+    'upsample_conv_single', 'upsample_conv_mult',
+    'transconv_ucatconv_single', 'transconv_ucatconv_mult',
+    'transconv_ucat_single', 'transconv_ucat_mult',
+    'upsample_conv_ucatconv_single', 'upsample_conv_ucatconv_mult',
+    'upsample_conv_ucat_single', 'upsample_conv_ucat_mult',
+    'transconv_csse_single', 'transconv_csse_mult',
+    'transconv_csse_conv_single', 'transconv_csse_conv_mult',
+    'upsample_conv_csse_single', 'upsample_conv_csse_mult',
+    'upsample_conv_csse_conv_single', 'upsample_conv_csse_conv_mult',
+)
 
 
 class ViTConfig():
@@ -9,6 +22,9 @@ class ViTConfig():
                  patch_size: tuple() = None,
                  slide_step: int = None,
                  num_channels: int = None,
+
+                 depatchifier: str = None,
+                 head_use_tanh: bool = None,
 
                  attention: str = None,
                  pos_embedding_type: str = None,
@@ -57,6 +73,12 @@ class ViTConfig():
 
     def assertions_corrections(self):
         assert self.attention in ATTENTIONS, f'Choose from {ATTENTIONS}'
+        assert self.depatchifier in DEPATCHIFIERS, f'Choose from {DEPATCHIFIERS}'
+
+        if self.depatchifier in ('inter_upsample_conv', 'inter_upsample_csse_conv',
+                                 'inter_upsample_csse_conv_conv'):
+            self.ret_inter = True
+            self.encoder_norm = False
 
     def __repr__(self):
         return str(vars(self))
@@ -73,6 +95,9 @@ def get_base_config():
         patch_size=(16, 16),
         slide_step=None,
         num_channels=3,
+
+        depatchifier='transconv_single',
+        head_use_tanh=False,
 
         attention='vanilla',
         pos_embedding_type='learned',

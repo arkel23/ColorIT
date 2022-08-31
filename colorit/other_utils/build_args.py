@@ -10,6 +10,21 @@ VITS = ['vit_t4', 'vit_t8', 'vit_t16', 'vit_t32', 'vit_s8', 'vit_s16', 'vit_s32'
 MODELS = VITS
 ATTENTIONS = ('vanilla', 'mixer', 'conv')
 
+DEPATCHIFIERS = (
+    'inter_upsample_conv', 'inter_upsample_csse_conv', 'inter_upsample_csse_conv_conv',
+    'inter_transconv_conv', 'inter_transconv_csse_conv', 'inter_transconv_csse_conv_conv',
+    'transconv_single', 'transconv_mult',
+    'upsample_conv_single', 'upsample_conv_mult',
+    'transconv_ucatconv_single', 'transconv_ucatconv_mult',
+    'transconv_ucat_single', 'transconv_ucat_mult',
+    'upsample_conv_ucatconv_single', 'upsample_conv_ucatconv_mult',
+    'upsample_conv_ucat_single', 'upsample_conv_ucat_mult',
+    'transconv_csse_single', 'transconv_csse_mult',
+    'transconv_csse_conv_single', 'transconv_csse_conv_mult',
+    'upsample_conv_csse_single', 'upsample_conv_csse_mult',
+    'upsample_conv_csse_conv_single', 'upsample_conv_csse_conv_mult',
+)
+
 
 def add_adjust_common_dependent(args):
     if args.test_only:
@@ -262,10 +277,14 @@ def add_augmentation_args(parser):
 
 
 def add_diffusion_args(parser):
+    parser.add_argument('--head_use_tanh', action='store_true',
+                        help='if use then adds tanh after depatchifier')
+    parser.add_argument('--depatchifier', type=str, default='transconv_single',
+                        choices=DEPATCHIFIERS, help='method for depatchifying')
     # sketching / drawing / colorization augs
     parser.add_argument('--train_refine_steps', type=int, default=40,
                         help='number of steps for refinement during training (like diffusion)')
-    parser.add_argument('--infer_refine_steps', type=int, default=20,
+    parser.add_argument('--infer_refine_steps', type=int, default=40,
                         help='number of steps for refinement during inference (like diffusion)')
     parser.add_argument('--xdog_sigma_percent', type=float, default=0.0)
     parser.add_argument('--xdog_phi_percent', type=float, default=0.0)

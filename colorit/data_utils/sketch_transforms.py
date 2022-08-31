@@ -30,10 +30,10 @@ def xdog(img, sigma=0.8, k=1.6, gamma=0.98, eps=-0.1, phi=200, thresh=False):
     sigma=0.5, k=200, gamma=1, eps=0.01, phi=10
     these values do get edges but does not look like a sketch or manga
     '''
-    img = np.array(img.convert('RGB'))
+    img = np.array(img.convert('L'))
 
-    g_filtered_1 = gaussian(img, sigma, channel_axis=2)
-    g_filtered_2 = gaussian(img, sigma * k, channel_axis=2)
+    g_filtered_1 = gaussian(img, sigma)
+    g_filtered_2 = gaussian(img, sigma * k)
 
     z = g_filtered_1 - gamma * g_filtered_2
 
@@ -49,7 +49,7 @@ def xdog(img, sigma=0.8, k=1.6, gamma=0.98, eps=-0.1, phi=200, thresh=False):
 
     z = cv2.normalize(src=z, dst=None, alpha=0, beta=255,
                       norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-    return Image.fromarray(z.astype('uint8'), 'RGB')
+    return Image.fromarray(z.astype('uint8'), 'L').convert('RGB')
 
 
 def xdog_serial(img, sigma=0.5, k=4.5, gamma=19, eps=0.01, phi=10**9):
@@ -59,10 +59,10 @@ def xdog_serial(img, sigma=0.5, k=4.5, gamma=19, eps=0.01, phi=10**9):
     sigma_large = sigma * k_sigma
     p is similar to gamma but also multiplies by first gaussian
     '''
-    img = np.array(img.convert('RGB'))
+    img = np.array(img.convert('L'))
 
-    g_filtered_1 = gaussian(img, sigma, channel_axis=2)
-    g_filtered_2 = gaussian(img, sigma * k, channel_axis=2)
+    g_filtered_1 = gaussian(img, sigma)
+    g_filtered_2 = gaussian(img, sigma * k)
 
     z = (1+gamma) * g_filtered_1 - gamma * g_filtered_2
 
@@ -76,4 +76,4 @@ def xdog_serial(img, sigma=0.5, k=4.5, gamma=19, eps=0.01, phi=10**9):
 
     edges = cv2.normalize(src=edges, dst=None, alpha=0, beta=255,
                           norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-    return Image.fromarray(edges.astype('uint8'), 'RGB')
+    return Image.fromarray(edges.astype('uint8'), 'L').convert('RGB')

@@ -33,7 +33,7 @@ class Trainer():
         self.loss_scaler = NativeScaler() if args.fp16 else None
 
     def train(self):
-        self.best_loss = 0
+        self.best_loss = 1e4
         self.best_epoch = 0
         self.max_memory = 0
         self.no_params = 0
@@ -93,7 +93,7 @@ class Trainer():
 
         if (self.args.save_images and train and (self.curr_iter % self.args.save_images == 0)):
             self.save_images(
-                images, images_gt, output, osp.join(self.args.results_dir, f'{self.curr_iter}.png'))
+                images, images_gt, output, osp.join(self.args.results_dir, f'train_{self.curr_iter}.png'))
             self.saved = False
         elif self.args.save_images and not train and not self.saved:
             self.save_images(
@@ -233,7 +233,7 @@ class Trainer():
         wandb.log(log_dic)
 
         # save the best model
-        if val_loss > self.best_loss:
+        if val_loss < self.best_loss:
             self.best_loss = val_loss
             self.best_epoch = self.epoch
             self.save_model(self.best_epoch, val_loss, mode='best')

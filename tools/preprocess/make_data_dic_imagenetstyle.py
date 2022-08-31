@@ -22,50 +22,23 @@ def search_images(args):
     return files_all
 
 
-def add_image_to_dics(idx, fp, classid_classname_dic, filename_classid_dic):
+def add_image_to_dics(fp, file_paths):
     # verify the image is RGB
     img = Image.open(fp)
     if img.mode != 'RGB':
         img = img.convert('RGB')
     if img.mode == 'RGB':
         abs_path, filename = os.path.split(fp)
-        _, class_name = os.path.split(abs_path)
-        rel_path = os.path.join(class_name, filename)
+        _, folder_name = os.path.split(abs_path)
+        rel_path = os.path.join(folder_name, filename)
+        file_paths.append(rel_path)
 
-        if class_name not in classid_classname_dic.values():
-            idx += 1
-            classid_classname_dic[idx] = class_name
-
-        filename_classid_dic[rel_path] = idx
-
-    return idx
+    return 0
 
 
-def save_classid_classname(args, classid_classname_dic):
-    df_classid_classname = pd.DataFrame.from_dict(
-        classid_classname_dic, orient='index', columns=['class_name'])
-
-    # change index
-    idx_col = np.arange(0, len(df_classid_classname), 1)
-    df_classid_classname['idx_col'] = idx_col
-    df_classid_classname['class_id'] = df_classid_classname.index
-    df_classid_classname.set_index('idx_col', inplace=True)
-
-    print(df_classid_classname.head())
-    fn = 'classid_classname.csv'
-    save_path = os.path.join(args.dataset_root_path, fn)
-    df_classid_classname.to_csv(save_path, sep=',', header=True, index=False,
-                                columns=['class_id', 'class_name'])
-
-
-def save_filename_classid(args, filename_classid_dic):
+def save_filename_classid(args, file_paths):
     # save dataframe to hold the class IDs and the relative paths of the files
-    df = pd.DataFrame.from_dict(
-        filename_classid_dic, orient='index', columns=['class_id'])
-    idx_col = np.arange(0, len(df), 1)
-    df['idx_col'] = idx_col
-    df['dir'] = df.index
-    df.set_index('idx_col', inplace=True)
+    df = pd.DataFrame(file_paths, columns=['class_id'])
     print(df.head())
 
     dataset_name = os.path.basename(os.path.normpath(args.images_path))
@@ -83,25 +56,15 @@ def make_data_dic(args):
     files_all = search_images(args)
 
     # filename and classid pairs
-    filename_classid_dic = {}
-    # id and class name/rel path as dict
-    classid_classname_dic = {}
+    file_paths = []
 
-    idx = -1
     for fp in files_all:
-        idx = add_image_to_dics(
-            idx, fp, classid_classname_dic, filename_classid_dic)
+        add_image_to_dics(fp, file_paths)
 
-    no_classes = idx + 1
-    print('Total number of classes: ', no_classes)
-    print('Total images files post-filtering (RGB only): ',
-          len(filename_classid_dic))
+    print('Total images files post-filtering (RGB only): ', len(file_paths))
 
     # save filename_classid df
-    save_filename_classid(args, filename_classid_dic)
-
-    # save classid_classname df
-    save_classid_classname(args, classid_classname_dic)
+    save_filename_classid(args, file_paths)
 
 
 def main():

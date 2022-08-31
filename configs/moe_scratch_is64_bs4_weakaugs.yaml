@@ -1,0 +1,4 @@
+defaults:
+    dataset: 'datasets/moe.yaml'
+    settings: 'settings/scratch_is64_bs4.yaml'
+    augs: 'augs/weakaugs.yaml'

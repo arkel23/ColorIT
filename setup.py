@@ -23,6 +23,8 @@ VERSION = '1.0'
 # What packages are required for this module to be executed?
 REQUIRED = [
     # 'django-pipeline==1.1.22', 'south>=0.7'
+    'imageio',
+    'imageio-ffmpeg',
     'scikit-image',
     'einops',
     'numpy',

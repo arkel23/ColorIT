@@ -69,7 +69,8 @@ class VisionTransformer(nn.Module):
         if not train:
             outs = []
             for _ in range(self.infer_refine_steps - 1):
-                out = self.model(out)
+                with torch.no_grad():
+                    out = self.model(out)
                 outs.append(out)
             out = outs
         return out

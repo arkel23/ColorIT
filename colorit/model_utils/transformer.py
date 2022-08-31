@@ -6,7 +6,7 @@ from einops import rearrange
 from einops.layers.torch import Rearrange
 
 from .drop_path import DropPath
-from .mixerblock import MixerBlock
+from .mixer_block import MixerBlock
 
 
 def split_last(x, shape):
@@ -131,8 +131,9 @@ class Transformer(nn.Module):
 
     def __init__(self, num_layers, dim, num_heads, ff_dim, hidden_dropout_prob,
                  attention_probs_dropout_prob, layer_norm_eps, sd=0,
-                 attn='vanilla', seq_len=196):
+                 attn='vanilla', seq_len=196, ret_inter=False):
         super().__init__()
+        self.ret_inter = ret_inter
 
         if attn == 'mixer':
             self.blocks = nn.ModuleList([
@@ -156,10 +157,20 @@ class Transformer(nn.Module):
                     layer_norm_eps, sd) for _ in range(num_layers)])
 
     def forward(self, x, mask=None):
+        if self.ret_inter:
+            inter = []
+
         if hasattr(self, 'rearrange'):
             x = self.rearrange(x)
+
         for block in self.blocks:
             x = block(x, mask)
+            if self.ret_inter:
+                inter.append(x)
+
         if hasattr(self, 'rearrange'):
             x = rearrange(x, 'b c s -> b s c')
+
+        if self.ret_inter:
+            return inter
         return x

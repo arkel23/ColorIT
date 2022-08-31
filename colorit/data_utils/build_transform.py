@@ -1,3 +1,4 @@
+from PIL import Image
 import numpy as np
 import torch
 from torchvision import transforms
@@ -70,7 +71,7 @@ class ApplyTransform():
         if self.is_train:
             r = np.random.rand(1)
             if r > 0.5:
-                self.serial = False
+                self.serial = True
 
             # results should come in pairs: b, train_refine_steps, 2, c, h, w or b, train_refine_steps * 2, c, h, w
             transforms = []
@@ -93,6 +94,11 @@ class ApplyTransform():
 
     def diffusion_transform(self, x, step):
         if step < self.xdog_sigma_steps:
+            if step == 0:
+                w, h = x.size
+                x = Image.new('RGB', (w, h), (255, 255, 255))
+                return x
+
             step_variable = self.get_step_variable(
                 step, [self.sigma_low, self.sigma_high], self.xdog_sigma_steps, quadratic=True)
             self.sigma = step_variable
@@ -124,7 +130,10 @@ class ApplyTransform():
         if quadratic:
             percent = percent ** 2
         r = np.random.normal(r_mean, r_std, 1)[0]
-        return max(percent + r, 0)
+        step_variable = percent + r
+        if step_variable >= 0:
+            return step_variable
+        return percent + abs(r)
 
     def get_t_tensor_norm(self, args):
         mean = MEANS['imagenet']

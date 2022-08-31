@@ -3,6 +3,7 @@ from torch import nn
 from einops.layers.torch import Rearrange
 
 from .transformer import Transformer
+from .depatchifier import Depatchifier
 from .load_pretrained_weights import load_pretrained_weights
 
 
@@ -49,17 +50,16 @@ class ViT(nn.Module):
             layer_norm_eps=config.layer_norm_eps,
             sd=config.sd,
             attn=config.attention,
-            seq_len=config.seq_len)
+            seq_len=config.seq_len,
+            ret_inter=hasattr(config, 'ret_inter'))
 
         if config.encoder_norm:
             self.encoder_norm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
 
-        self.depatchify = nn.Sequential(
-            Rearrange('b (gh gw) d -> b d gh gw', gh=config.gh),
-            nn.ConvTranspose2d(
-                in_channels=config.hidden_size, out_channels=config.num_channels,
-                kernel_size=(config.fh, config.fw), stride=stride)
-        )
+        self.depatchifier = Depatchifier(config)
+
+        if config.head_use_tanh:
+            self.tanh = nn.Tanh()
 
         # Initialize weights
         self.init_weights()
@@ -91,11 +91,13 @@ class ViT(nn.Module):
         x = self.encoder(x)
         if hasattr(self, 'encoder_norm'):
             x = self.encoder_norm(x)
-        self.maybe_print('After encoder: ', x.shape)
+        # self.maybe_print('After encoder: ', x.shape)
 
-        x = self.depatchify(x)
-        self.maybe_print('After depatchifying: ', x.shape)
+        x = self.depatchifier(x)
+        self.maybe_print('After depatchifier: ', x.shape)
 
+        if hasattr(self, 'tanh'):
+            x = self.tanh(x)
         return x
 
     def maybe_print(self, *args):

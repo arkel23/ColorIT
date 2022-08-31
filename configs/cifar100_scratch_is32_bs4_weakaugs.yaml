@@ -1,4 +1,4 @@
 defaults:
     dataset: 'datasets/cifar100.yaml'
-    settings: 'settings/scratch_is32_bs8.yaml'
+    settings: 'settings/scratch_is32_bs4.yaml'
     augs: 'augs/weakaugs.yaml'

@@ -1,5 +1,7 @@
 *.png
 *.jpg
+*.gif
+*.mp4
 
 # weights
 *.ckpt

@@ -1,10 +1,10 @@
 # hyperparameters
 image_size: 32
-batch_size: 8
-gradient_accumulation_steps: 1
-epochs: 100
+batch_size: 4
+gradient_accumulation_steps: 2
+#epochs: 1000
 warmup_epochs: 2
 warmup_steps: 500
 cooldown_epochs: 5
 opt: 'adamw'
-weight_decay: 5e-4
+weight_decay: 0.0005
