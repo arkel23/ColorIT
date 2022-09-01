@@ -40,8 +40,9 @@ class ViT(nn.Module):
                 config.seq_len, config.hidden_size)
 
         # Transformer encoder
+        num_layers = config.num_hidden_layers // 2 if 'next' in config.depatchifier else config.num_hidden_layers
         self.encoder = Transformer(
-            num_layers=config.num_hidden_layers,
+            num_layers=num_layers,
             dim=config.hidden_size,
             num_heads=config.num_attention_heads,
             ff_dim=config.intermediate_size,
@@ -82,6 +83,7 @@ class ViT(nn.Module):
         """
         x (tensor): b k c fh fw -> b s d
         """
+        images = x
         self.maybe_print('Before tokenizing: ', x.shape)
         x = self.patchify(x)
         if hasattr(self, 'positional_embedding'):
@@ -93,7 +95,7 @@ class ViT(nn.Module):
             x = self.encoder_norm(x)
         # self.maybe_print('After encoder: ', x.shape)
 
-        x = self.depatchifier(x)
+        x = self.depatchifier(x, images)
         self.maybe_print('After depatchifier: ', x.shape)
 
         if hasattr(self, 'tanh'):

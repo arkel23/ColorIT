@@ -7,6 +7,7 @@ from einops.layers.torch import Rearrange
 
 from .drop_path import DropPath
 from .mixer_block import MixerBlock
+from .squeeze_and_excitation import ChanSqueezeSpatialExcite
 
 
 def split_last(x, shape):
@@ -87,7 +88,7 @@ class BlockVanilla(nn.Module):
         else:
             self.drop = nn.Dropout(hidden_dropout_prob)
 
-    def forward(self, x, mask):
+    def forward(self, x, mask, context):
         h = self.drop(self.proj(self.attn(self.norm1(x), mask=mask)))
         x = x + h
         h = self.drop(self.pwff(self.norm2(x)))
@@ -97,7 +98,8 @@ class BlockVanilla(nn.Module):
 
 class ConvNextBlock(nn.Module):
     def __init__(self, dim, ff_dim, hidden_dropout_prob=0, sd=0,
-                 layer_norm_eps=1e-6, kernel_size=7, layer_scale_init_value=1e-6):
+                 layer_norm_eps=1e-6, kernel_size=7, layer_scale_init_value=1e-6,
+                 se=False, seq_len=None):
         super().__init__()
 
         assert (kernel_size - 1) % 2 == 0, f'kernel size {kernel_size} must be odd'
@@ -109,20 +111,39 @@ class ConvNextBlock(nn.Module):
         self.pwconv2 = nn.Linear(ff_dim, dim)
         self.gamma = nn.Parameter(layer_scale_init_value * torch.ones((dim)),
                                   requires_grad=True) if layer_scale_init_value > 0 else None
+
+        if se:
+            # self.norm15 = nn.LayerNorm(dim, eps=layer_norm_eps)
+            if se == 'csse':
+                # excite_dim, r_ratio=2, spatial_squeeze=True, conv=False, squeeze_dim=None
+                self.se = ChanSqueezeSpatialExcite(seq_len, 2, False, dim)
+            elif se == 'csse_c':
+                self.se = ChanSqueezeSpatialExcite(seq_len, 2, True, dim)
+
         if sd > 0:
             self.drop = DropPath(sd)
         else:
             self.drop = nn.Dropout(hidden_dropout_prob)
 
-    def forward(self, x, mask=None):
+    def forward(self, x, mask=None, context=None):
         h = self.dwconv(x)
         h = rearrange(h, 'b c s -> b s c')
         h = self.norm(h)
+        # x = rearrange(x, 'b c s -> b s c') + self.drop(h)
+
+        if hasattr(self, 'se'):
+            context = rearrange(context, 'b c h w -> b (h w) c')
+            h = self.se(context, x)
+            # h = self.norm15(h)
+            x = x + self.drop(h)
+
         h = self.pwconv2(F.gelu(self.pwconv1(h)))
         if self.gamma is not None:
             h = self.gamma * h
+        # h = self.norm2(h)
         h = rearrange(h, 'b s c -> b c s')
         x = x + self.drop(h)
+        # x = rearrange(x, 'b s c -> b c s')
         return x
 
 
@@ -131,7 +152,7 @@ class Transformer(nn.Module):
 
     def __init__(self, num_layers, dim, num_heads, ff_dim, hidden_dropout_prob,
                  attention_probs_dropout_prob, layer_norm_eps, sd=0,
-                 attn='vanilla', seq_len=196, ret_inter=False):
+                 attn='vanilla', seq_len=196, ret_inter=False, se=None):
         super().__init__()
         self.ret_inter = ret_inter
 
@@ -148,7 +169,7 @@ class Transformer(nn.Module):
             self.rearrange = Rearrange('b s c -> b c s')
             self.blocks = nn.ModuleList([
                 ConvNextBlock(dim, ff_dim, hidden_dropout_prob, sd,
-                              layer_norm_eps, kernel_size=kernel_size)
+                              layer_norm_eps, kernel_size=kernel_size, se=None, seq_len=seq_len)
                 for _ in range(num_layers)])
         else:
             self.blocks = nn.ModuleList([
@@ -156,7 +177,7 @@ class Transformer(nn.Module):
                     dim, num_heads, ff_dim, hidden_dropout_prob, attention_probs_dropout_prob,
                     layer_norm_eps, sd) for _ in range(num_layers)])
 
-    def forward(self, x, mask=None):
+    def forward(self, x, mask=None, context=None):
         if self.ret_inter:
             inter = []
 
@@ -164,9 +185,12 @@ class Transformer(nn.Module):
             x = self.rearrange(x)
 
         for block in self.blocks:
-            x = block(x, mask)
+            x = block(x, mask, context)
             if self.ret_inter:
-                inter.append(x)
+                if hasattr(self, 'rearrange'):
+                    inter.append(rearrange(x, 'b c s -> b s c'))
+                else:
+                    inter.append(x)
 
         if hasattr(self, 'rearrange'):
             x = rearrange(x, 'b c s -> b s c')

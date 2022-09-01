@@ -87,7 +87,7 @@ class MixerBlock(nn.Module):
         self.norm2 = norm_layer(dim)
         self.mlp_channels = mlp_layer(dim, channels_dim, act_layer=act_layer, drop=drop)
 
-    def forward(self, x, context=None, mask=None):
+    def forward(self, x, mask=None, context=None):
         x = x + self.drop_path(self.mlp_tokens(self.norm1(x).transpose(1, 2)).transpose(1, 2))
         x = x + self.drop_path(self.mlp_channels(self.norm2(x)))
         return x

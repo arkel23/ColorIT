@@ -14,13 +14,13 @@ from einops import rearrange, reduce
 from einops.layers.torch import Rearrange
 
 
-class SELayer(nn.Module):
+class ChanSqueezeSpatialExcite(nn.Module):
     def __init__(self, excite_dim, r_ratio=2, conv=False, squeeze_dim=None):
         """
         :param excite_dim: No of input channels
         :param r_ratio: By how much should the excite_dim should be reduced
         """
-        super(SELayer, self).__init__()
+        super(ChanSqueezeSpatialExcite, self).__init__()
         excite_dim_reduced = excite_dim // r_ratio
         self.r_ratio = r_ratio
         self.fc1 = nn.Linear(excite_dim, excite_dim_reduced, bias=True)
@@ -34,7 +34,7 @@ class SELayer(nn.Module):
                 Rearrange('b 1 s -> b s')
             )
 
-    def forward(self, context, input=None):
+    def forward(self, context, input):
         """
         :param context: X, shape = (batch_size, sequence_len, channels)
         :return: output tensor
@@ -50,11 +50,7 @@ class SELayer(nn.Module):
         fc_out_2 = self.sigmoid(self.fc2(fc_out_1))
 
         # reweight original feature maps based on computed excitation
-        if input is not None:
-            assert input.shape == context.shape, \
-                'Cannot use channel squeeze and spatial excitation unless input/context are same size'
-            output = torch.mul(input, rearrange(fc_out_2, 'b s -> b s 1'))
-        else:
-            output = torch.mul(context, rearrange(fc_out_2, 'b s -> b s 1'))
+        assert input.shape == context.shape, \
+            'Cannot use channel squeeze and spatial excitation unless input/context are same size'
+        output = torch.mul(input, rearrange(fc_out_2, 'b s -> b s 1'))
         return output
-

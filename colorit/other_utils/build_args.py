@@ -290,6 +290,8 @@ def add_diffusion_args(parser):
     parser.add_argument('--xdog_phi_percent', type=float, default=0.0)
     parser.add_argument('--decontrast_percent', type=float, default=0.2)
     parser.add_argument('--desaturate_percent', type=float, default=0.8)
+    parser.add_argument('--xdog_serial', action='store_true',
+                        help='if true then uses xdog serial instead of xdog')
     return parser
 
 

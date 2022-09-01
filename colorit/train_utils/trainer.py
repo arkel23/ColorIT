@@ -65,7 +65,7 @@ class Trainer():
         images = batch
         if type(images) == list:
             images = torch.stack(images, dim=-1)
-            images = rearrange(images, 'b c h w n s -> (s b) c h w n')
+            images = rearrange(images, 'b c h w n s -> (b s) c h w n')
 
         if self.args.distributed:
             images = images.cuda(non_blocking=True)

@@ -47,8 +47,8 @@ class ApplyTransform():
         self.desaturate_steps = int(self.args.desaturate_percent * self.train_refine_steps)
 
         self.is_train = is_train
+        self.xdog_serial = args.xdog_serial
 
-        self.serial = False
         self.sigma = 0.8
         self.sigma_serial = 0.5
 
@@ -69,9 +69,9 @@ class ApplyTransform():
 
     def __call__(self, x):
         if self.is_train:
-            r = np.random.rand(1)
-            if r > 0.5:
-                self.serial = True
+            # r = np.random.rand(1)
+            # if r > 0.5:
+            #    self.serial = False
 
             # results should come in pairs: b, train_refine_steps, 2, c, h, w or b, train_refine_steps * 2, c, h, w
             transforms = []
@@ -84,32 +84,30 @@ class ApplyTransform():
                 transforms.append(torch.stack([x_input, x_gt], dim=-1))
                 x_input = x_gt
 
-            transforms.append(torch.stack([x_input, self.t_tensor_norm(x_0)], dim=-1))
+            # transforms.append(torch.stack([x_input, self.t_tensor_norm(x_0)], dim=-1))
             return transforms
 
         else:
-            x_gt = self.t(x)
-            x_input = self.t_tensor_norm(self.diffusion_transform(x_gt, step=0))
-            return torch.stack([x_input, self.t_tensor_norm(x_gt)], dim=-1)
+            x_0 = self.t(x)
+            x_input = self.t_tensor_norm(self.diffusion_transform(x_0, step=0))
+            x_gt = self.t_tensor_norm(self.diffusion_transform(x_0, step=self.train_refine_steps - 1))
+            # return torch.stack([x_input, self.t_tensor_norm(x_gt)], dim=-1)
+            return torch.stack([x_input, x_gt], dim=-1)
 
     def diffusion_transform(self, x, step):
         if step < self.xdog_sigma_steps:
-            if step == 0:
-                w, h = x.size
-                x = Image.new('RGB', (w, h), (255, 255, 255))
-                return x
-
             step_variable = self.get_step_variable(
                 step, [self.sigma_low, self.sigma_high], self.xdog_sigma_steps, quadratic=True)
-            self.sigma = step_variable
-            if self.serial:
-                x = xdog_serial(x, sigma=self.sigma)
+            if self.is_train:
+                self.sigma = step_variable
+            if self.xdog_serial:
+                x = xdog_serial(x, sigma=step_variable)
             else:
-                x = xdog(x, sigma=self.sigma)
+                x = xdog(x, sigma=step_variable)
 
         elif step >= self.xdog_sigma_steps and step < self.xdog_phi_end_step:
             step_variable = self.get_step_variable(
-                step - self.xdog_sigma_steps, [self.phi_low, self.phi_high], self.xdog_phi_steps)
+                step - self.xdog_sigma_steps, [self.phi_high, self.phi_low], self.xdog_phi_steps)
             x = xdog(x, sigma=self.sigma, phi=step_variable)
 
         elif step >= self.xdog_phi_end_step and step < self.decontrast_end_step:
@@ -127,12 +125,10 @@ class ApplyTransform():
 
     def get_step_variable(self, step, ranges, total_steps, r_mean=0, r_std=0.1, quadratic=False):
         percent = np.linspace(ranges[0], ranges[1], total_steps)[step]
+        r_std = percent * r_std
+        r = np.random.normal(r_mean, r_std, 1)[0]
         if quadratic:
             percent = percent ** 2
-        r = np.random.normal(r_mean, r_std, 1)[0]
-        step_variable = percent + r
-        if step_variable >= 0:
-            return step_variable
         return percent + abs(r)
 
     def get_t_tensor_norm(self, args):
