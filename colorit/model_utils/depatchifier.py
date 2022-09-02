@@ -38,7 +38,7 @@ class Depatchifier(nn.Module):
                     in_channels=config.num_channels * 2, out_channels=config.num_channels,
                     kernel_size=conv_kernel_size, padding=conv_padding, stride=1)
             elif config.depatchifier == 'transconv_se':
-                self.se = SEBlock(config.se, config.seq_len, config.num_channels, config.se_ratio,
+                self.se = SEBlock(config.se, config.image_size ** 2, config.num_channels, config.se_ratio,
                                   config.se_residual, config.se_reweight_target)
 
         elif config.depatchifier == 'upsample_conv':
