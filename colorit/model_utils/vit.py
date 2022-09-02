@@ -93,7 +93,6 @@ class ViT(nn.Module):
         x = self.encoder(x)
         if hasattr(self, 'encoder_norm'):
             x = self.encoder_norm(x)
-        # self.maybe_print('After encoder: ', x.shape)
 
         x = self.depatchifier(x, images)
         self.maybe_print('After depatchifier: ', x.shape)

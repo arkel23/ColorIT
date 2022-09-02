@@ -36,30 +36,40 @@ class ApplyTransform():
 
         self.train_refine_steps = args.train_refine_steps
 
-        self.xdog_sigma_steps = int(self.args.xdog_sigma_percent * self.train_refine_steps)
+        self.sigma_steps = args.sigma_steps
+        self.xdog_stg2_steps = args.xdog_stg2_steps
+        self.dc_steps = args.dc_steps
+        self.ds_steps = args.ds_steps
 
-        self.xdog_phi_steps = int(self.args.xdog_phi_percent * self.train_refine_steps)
-        self.xdog_phi_end_step = self.xdog_phi_steps + self.xdog_sigma_steps
+        if self.ds_steps != 0:
+            self.ds_steps += 1
+        elif self.dc_steps != 0:
+            self.dc_steps += 1
+        elif self.xdog_stg2_steps != 0:
+            self.xdog_stg2_steps += 1
+        else:
+            self.sigma_steps += 1
 
-        self.decontrast_steps = int(self.args.decontrast_percent * self.train_refine_steps)
-        self.decontrast_end_step = self.decontrast_steps + self.xdog_phi_end_step
-
-        self.desaturate_steps = int(self.args.desaturate_percent * self.train_refine_steps)
+        self.xdog_stg2_end_step = self.xdog_stg2_steps + self.sigma_steps
+        self.dc_end_step = self.dc_steps + self.xdog_stg2_end_step
 
         self.is_train = is_train
         self.xdog_serial = args.xdog_serial
+        self.xdog_random = args.xdog_random
 
         self.sigma = 0.8
-        self.sigma_serial = 0.5
-
-        self.k = 1.6
-        self.k_serial = 4.5
-
         self.sigma_low = 0.0
         self.sigma_high = 0.9
-
+        self.k = 1.6
         self.phi_low = 40
         self.phi_high = 200
+
+        self.sigma_serial = 0.5
+        self.sigma_serial_low = 0.3
+        self.sigma_serial_high = 0.7
+        self.k_serial = 4.5
+        self.k_low = 2
+        self.k_high = 8
 
         self.dc_low = 0.4
         self.dc_high = 1.0
@@ -69,9 +79,11 @@ class ApplyTransform():
 
     def __call__(self, x):
         if self.is_train:
-            # r = np.random.rand(1)
-            # if r > 0.5:
-            #    self.serial = False
+            r = np.random.rand(1)
+            if r > 0.5 and self.xdog_random and self.is_train:
+                self.serial = True
+            else:
+                self.serial = False
 
             # results should come in pairs: b, train_refine_steps, 2, c, h, w or b, train_refine_steps * 2, c, h, w
             transforms = []
@@ -84,6 +96,8 @@ class ApplyTransform():
                 transforms.append(torch.stack([x_input, x_gt], dim=-1))
                 x_input = x_gt
 
+            x_gt = self.t_tensor_norm(self.diffusion_transform(x_0, step=self.train_refine_steps))
+            transforms.append(torch.stack([x_input, x_gt], dim=-1))
             # transforms.append(torch.stack([x_input, self.t_tensor_norm(x_0)], dim=-1))
             return transforms
 
@@ -95,30 +109,41 @@ class ApplyTransform():
             return torch.stack([x_input, x_gt], dim=-1)
 
     def diffusion_transform(self, x, step):
-        if step < self.xdog_sigma_steps:
-            step_variable = self.get_step_variable(
-                step, [self.sigma_low, self.sigma_high], self.xdog_sigma_steps, quadratic=True)
-            if self.is_train:
-                self.sigma = step_variable
+        if step < self.sigma_steps:
             if self.xdog_serial:
+                step_variable = self.get_step_variable(
+                    step, [self.sigma_serial_low, self.sigma_serial_high], self.sigma_steps, quadratic=True)
+                if self.is_train:
+                    self.sigma_serial = step_variable
+
                 x = xdog_serial(x, sigma=step_variable)
             else:
+                step_variable = self.get_step_variable(
+                    step, [self.sigma_low, self.sigma_high], self.sigma_steps, quadratic=True)
+                if self.is_train:
+                    self.sigma = step_variable
+
                 x = xdog(x, sigma=step_variable)
 
-        elif step >= self.xdog_sigma_steps and step < self.xdog_phi_end_step:
-            step_variable = self.get_step_variable(
-                step - self.xdog_sigma_steps, [self.phi_high, self.phi_low], self.xdog_phi_steps)
-            x = xdog(x, sigma=self.sigma, phi=step_variable)
+        elif step >= self.sigma_steps and step < self.xdog_stg2_end_step:
+            if self.xdog_serial:
+                step_variable = self.get_step_variable(
+                    step - self.sigma_steps, [self.k_low, self.k_high], self.xdog_stg2_steps)
+                x = xdog_serial(x, sigma=self.sigma_serial, k=step_variable)
+            else:
+                step_variable = self.get_step_variable(
+                    step - self.sigma_steps, [self.phi_high, self.phi_low], self.xdog_stg2_steps)
+                x = xdog(x, sigma=self.sigma, phi=step_variable)
 
-        elif step >= self.xdog_phi_end_step and step < self.decontrast_end_step:
+        elif step >= self.xdog_stg2_end_step and step < self.dc_end_step:
             step_variable = self.get_step_variable(
-                step - self.xdog_phi_end_step, [self.dc_low, self.dc_high], self.decontrast_steps)
+                step - self.xdog_stg2_end_step, [self.dc_low, self.dc_high], self.dc_steps)
             x = desaturate(x, 0)
             x = decontrast(x, step_variable)
 
-        elif step >= self.decontrast_end_step:
+        elif step >= self.dc_end_step:
             step_variable = self.get_step_variable(
-                step - self.decontrast_end_step, [self.ds_low, self.ds_high], self.desaturate_steps)
+                step - self.dc_end_step, [self.ds_low, self.ds_high], self.ds_steps)
             x = desaturate(x, step_variable)
 
         return x

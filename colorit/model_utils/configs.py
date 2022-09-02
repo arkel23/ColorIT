@@ -24,6 +24,7 @@ class ViTConfig():
                  num_channels: int = None,
 
                  depatchifier: str = None,
+                 se: str = None,
                  head_use_tanh: bool = None,
 
                  attention: str = None,
@@ -97,6 +98,7 @@ def get_base_config():
         num_channels=3,
 
         depatchifier='transconv_single',
+        se=None,
         head_use_tanh=False,
 
         attention='vanilla',

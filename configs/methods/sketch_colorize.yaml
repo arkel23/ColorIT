@@ -1,6 +1,4 @@
-train_refine_steps: 40
-infer_refine_steps: 40
-xdog_sigma_percent: 0.0
-xdog_phi_percent: 0.3
-decontrast_percent: 0.1
-desaturate_percent: 0.6
+sigma_steps: 2
+xdog_stg2_steps: 0
+dc_steps: 2
+ds_steps: 4

@@ -85,6 +85,11 @@ def add_adjust_common_dependent(args):
         print('Needs at least one crop, using square_resize_random_crop by default')
         args.square_resize_random_crop = True
 
+    args.train_refine_steps = args.sigma_steps + args.xdog_stg2_steps + args.dc_steps + args.ds_steps
+
+    if not args.infer_refine_steps:
+        args.infer_refine_steps = args.train_refine_steps
+
     return args
 
 
@@ -281,17 +286,20 @@ def add_diffusion_args(parser):
                         help='if use then adds tanh after depatchifier')
     parser.add_argument('--depatchifier', type=str, default='transconv_single',
                         choices=DEPATCHIFIERS, help='method for depatchifying')
+    parser.add_argument('--se', type=str, default=None,
+                        choices=(None, 'ssce', 'ssce_conv', 'csse', 'csse_conv', 'cse', 'cse_conv'),
+                        help='method for depatchifying')
     # sketching / drawing / colorization augs
-    parser.add_argument('--train_refine_steps', type=int, default=40,
-                        help='number of steps for refinement during training (like diffusion)')
-    parser.add_argument('--infer_refine_steps', type=int, default=40,
+    parser.add_argument('--infer_refine_steps', type=int, default=None,
                         help='number of steps for refinement during inference (like diffusion)')
-    parser.add_argument('--xdog_sigma_percent', type=float, default=0.0)
-    parser.add_argument('--xdog_phi_percent', type=float, default=0.0)
-    parser.add_argument('--decontrast_percent', type=float, default=0.2)
-    parser.add_argument('--desaturate_percent', type=float, default=0.8)
+    parser.add_argument('--sigma_steps', type=int, default=0)
+    parser.add_argument('--xdog_stg2_steps', type=int, default=0)
+    parser.add_argument('--dc_steps', type=int, default=0)
+    parser.add_argument('--ds_steps', type=int, default=0)
     parser.add_argument('--xdog_serial', action='store_true',
                         help='if true then uses xdog serial instead of xdog')
+    parser.add_argument('--xdog_random', action='store_true',
+                        help='if true then alternates between xdog and xdog_serial')
     return parser
 
 
