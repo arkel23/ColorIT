@@ -7,7 +7,7 @@ from einops.layers.torch import Rearrange
 
 from .drop_path import DropPath
 from .mixer_block import MixerBlock
-from .squeeze_and_excitation import ChanSqueezeSpatialExcite
+from .squeeze_and_excitation import SEBlock
 
 
 def split_last(x, shape):
@@ -99,7 +99,7 @@ class BlockVanilla(nn.Module):
 class ConvNextBlock(nn.Module):
     def __init__(self, dim, ff_dim, hidden_dropout_prob=0, sd=0,
                  layer_norm_eps=1e-6, kernel_size=7, layer_scale_init_value=1e-6,
-                 se=False, seq_len=None):
+                 seq_len=None, se=None, se_ratio=2, se_res=False, se_rw=False):
         super().__init__()
 
         assert (kernel_size - 1) % 2 == 0, f'kernel size {kernel_size} must be odd'
@@ -114,11 +114,8 @@ class ConvNextBlock(nn.Module):
 
         if se:
             # self.norm15 = nn.LayerNorm(dim, eps=layer_norm_eps)
-            if se == 'csse':
-                # excite_dim, r_ratio=2, spatial_squeeze=True, conv=False, squeeze_dim=None
-                self.se = ChanSqueezeSpatialExcite(seq_len, 2, False, dim)
-            elif se == 'csse_c':
-                self.se = ChanSqueezeSpatialExcite(seq_len, 2, True, dim)
+            self.se = SEBlock(se, seq_len, dim, se_ratio,
+                              se_res, se_rw)
 
         if sd > 0:
             self.drop = DropPath(sd)

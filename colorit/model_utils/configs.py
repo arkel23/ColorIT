@@ -1,17 +1,4 @@
 ATTENTIONS = ('vanilla', 'mixer', 'conv')
-DEPATCHIFIERS = (
-    'inter_upsample_conv', 'inter_upsample_csse_conv', 'inter_upsample_csse_conv_conv',
-    'transconv_single', 'transconv_mult',
-    'upsample_conv_single', 'upsample_conv_mult',
-    'transconv_ucatconv_single', 'transconv_ucatconv_mult',
-    'transconv_ucat_single', 'transconv_ucat_mult',
-    'upsample_conv_ucatconv_single', 'upsample_conv_ucatconv_mult',
-    'upsample_conv_ucat_single', 'upsample_conv_ucat_mult',
-    'transconv_csse_single', 'transconv_csse_mult',
-    'transconv_csse_conv_single', 'transconv_csse_conv_mult',
-    'upsample_conv_csse_single', 'upsample_conv_csse_mult',
-    'upsample_conv_csse_conv_single', 'upsample_conv_csse_conv_mult',
-)
 
 
 class ViTConfig():
@@ -25,6 +12,9 @@ class ViTConfig():
 
                  depatchifier: str = None,
                  se: str = None,
+                 se_ratio: float = None,
+                 se_residual: bool = None,
+                 se_reweight_target: bool = None,
                  head_use_tanh: bool = None,
 
                  attention: str = None,
@@ -74,12 +64,14 @@ class ViTConfig():
 
     def assertions_corrections(self):
         assert self.attention in ATTENTIONS, f'Choose from {ATTENTIONS}'
-        assert self.depatchifier in DEPATCHIFIERS, f'Choose from {DEPATCHIFIERS}'
 
-        if self.depatchifier in ('inter_upsample_conv', 'inter_upsample_csse_conv',
-                                 'inter_upsample_csse_conv_conv'):
+        if 'inter' in self.depatchifier:
             self.ret_inter = True
             self.encoder_norm = False
+
+        if self.se_residual and self.se_reweight_target:
+            print('At least one of se_residual and se_reweight must be True, reweight_target by def')
+            self.se_reweight_target = True
 
     def __repr__(self):
         return str(vars(self))
@@ -97,8 +89,11 @@ def get_base_config():
         slide_step=None,
         num_channels=3,
 
-        depatchifier='transconv_single',
+        depatchifier='transconv',
         se=None,
+        se_ratio=0.0,
+        se_residual=False,
+        se_reweight_target=False,
         head_use_tanh=False,
 
         attention='vanilla',

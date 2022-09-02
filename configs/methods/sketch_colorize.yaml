@@ -1,4 +1,4 @@
 sigma_steps: 2
 xdog_stg2_steps: 0
-dc_steps: 2
-ds_steps: 4
+dc_steps: 1
+ds_steps: 2

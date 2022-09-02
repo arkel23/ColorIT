@@ -9,21 +9,13 @@ VITS = ['vit_t4', 'vit_t8', 'vit_t16', 'vit_t32', 'vit_s8', 'vit_s16', 'vit_s32'
         'vit_b8', 'vit_b16', 'vit_bs16', 'vit_b32', 'vit_l16', 'vit_l32', 'vit_h14']
 MODELS = VITS
 ATTENTIONS = ('vanilla', 'mixer', 'conv')
-
 DEPATCHIFIERS = (
-    'inter_upsample_conv', 'inter_upsample_csse_conv', 'inter_upsample_csse_conv_conv',
-    'inter_transconv_conv', 'inter_transconv_csse_conv', 'inter_transconv_csse_conv_conv',
-    'transconv_single', 'transconv_mult',
-    'upsample_conv_single', 'upsample_conv_mult',
-    'transconv_ucatconv_single', 'transconv_ucatconv_mult',
-    'transconv_ucat_single', 'transconv_ucat_mult',
-    'upsample_conv_ucatconv_single', 'upsample_conv_ucatconv_mult',
-    'upsample_conv_ucat_single', 'upsample_conv_ucat_mult',
-    'transconv_csse_single', 'transconv_csse_mult',
-    'transconv_csse_conv_single', 'transconv_csse_conv_mult',
-    'upsample_conv_csse_single', 'upsample_conv_csse_mult',
-    'upsample_conv_csse_conv_single', 'upsample_conv_csse_conv_mult',
+    'transconv', 'transconv_ucatconv', 'transconv_se',
+    'upsample_conv', 'upsample_conv_ucatconv', 'upsample_conv_se',
+    'inter_transconv_conv', 'inter_transconv_se',
+    'inter_upsample_conv', 'inter_upsample_conv_conv', 'inter_upsample_conv_se'
 )
+SES = (None, 'ssce', 'ssce_w', 'csse', 'csse_w', 'cse', 'cse_w')
 
 
 def add_adjust_common_dependent(args):
@@ -284,11 +276,16 @@ def add_augmentation_args(parser):
 def add_diffusion_args(parser):
     parser.add_argument('--head_use_tanh', action='store_true',
                         help='if use then adds tanh after depatchifier')
-    parser.add_argument('--depatchifier', type=str, default='transconv_single',
+    parser.add_argument('--depatchifier', type=str, default='transconv',
                         choices=DEPATCHIFIERS, help='method for depatchifying')
     parser.add_argument('--se', type=str, default=None,
-                        choices=(None, 'ssce', 'ssce_conv', 'csse', 'csse_conv', 'cse', 'cse_conv'),
-                        help='method for depatchifying')
+                        choices=SES, help='se for depatchifying')
+    parser.add_argument('--se_ratio', type=float, default=4,
+                        help='compression/expansion ratio for se block')
+    parser.add_argument('--se_residual', action='store_true',
+                        help='if true then result of se is added as a residual')
+    parser.add_argument('--se_reweight_target', action='store_true',
+                        help='if true then reweights target based on context (original image)')
     # sketching / drawing / colorization augs
     parser.add_argument('--infer_refine_steps', type=int, default=None,
                         help='number of steps for refinement during inference (like diffusion)')
