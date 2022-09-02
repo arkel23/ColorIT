@@ -14,7 +14,7 @@ from einops.layers.torch import Rearrange
 
 
 class SEBlock(nn.Module):
-    def __init__(self, se, spatial_dim, channel_dim, ratio=4, weighted=False, res=False, reweight_target=True):
+    def __init__(self, se, spatial_dim, channel_dim, ratio=4, res=False, reweight_target=True, weighted=False):
         super(SEBlock, self).__init__()
         if 'w' in se:
             se = se.split('_')[0]

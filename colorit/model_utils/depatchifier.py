@@ -30,7 +30,7 @@ class Depatchifier(nn.Module):
                     Rearrange('b c h w -> b h w c'),
                     nn.LayerNorm(config.num_channels, eps=config.layer_norm_eps),
                     nn.GELU(),
-                    Rearrange('b c h w')
+                    Rearrange('b h w c -> b c h w')
                 )
 
             if config.depatchifier == 'transconv_ucatconv':
